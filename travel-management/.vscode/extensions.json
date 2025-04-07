@@ -1,0 +1,16 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-typescript-next",
+    "ms-azuretools.vscode-docker",
+    "mikestead.dotenv",
+    "orta.vscode-jest",
+    "jpoissonnier.vscode-styled-components",
+    "ms-vsliveshare.vsliveshare",
+    "eamodio.gitlens",
+    "yzhang.markdown-all-in-one",
+    "firsttris.vscode-jest-runner",
+    "formulahendry.auto-rename-tag"
+  ]
+} 
