@@ -12,33 +12,37 @@ import {
   Alert,
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import { supabase } from '../lib/supabase';
 
-interface LoginProps {
-  setIsAuthenticated: (value: boolean) => void;
-}
-
-const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
+const Login: React.FC = () => {
   const navigate = useNavigate();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    // For demo purposes, hardcoded credentials
-    // In a real application, this would call an API
-    if (username === 'admin' && password === 'password') {
-      localStorage.setItem('token', 'demo-token');
-      localStorage.setItem('user', JSON.stringify({ role: 'admin', username }));
-      setIsAuthenticated(true);
-      navigate('/');
-    } else if (username === 'user' && password === 'password') {
-      localStorage.setItem('token', 'demo-token');
-      localStorage.setItem('user', JSON.stringify({ role: 'user', username }));
-      setIsAuthenticated(true);
-      navigate('/');
-    } else {
-      setError('Invalid username or password');
+    setError('');
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.user) {
+        navigate('/');
+      }
+    } catch (error: any) {
+      setError(error.message || 'An error occurred during sign in');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -64,13 +68,13 @@ const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
             margin="normal"
             required
             fullWidth
-            id="username"
-            label="Username"
-            name="username"
-            autoComplete="username"
+            id="email"
+            label="Email Address"
+            name="email"
+            autoComplete="email"
             autoFocus
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
           <TextField
             margin="normal"
@@ -89,18 +93,35 @@ const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
             fullWidth
             variant="contained"
             sx={{ mt: 3, mb: 2 }}
+            disabled={loading}
           >
-            Sign In
+            {loading ? 'Signing in...' : 'Sign In'}
           </Button>
           <Grid container>
             <Grid item xs>
-              <Typography variant="body2">
-                Username: admin or user
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: 'text.secondary',
+                  cursor: 'pointer',
+                  '&:hover': { textDecoration: 'underline' } 
+                }}
+                onClick={() => navigate('/forgot-password')}
+              >
+                Forgot password?
               </Typography>
             </Grid>
             <Grid item>
-              <Typography variant="body2">
-                Password: password
+              <Typography 
+                variant="body2"
+                sx={{ 
+                  color: 'text.secondary',
+                  cursor: 'pointer',
+                  '&:hover': { textDecoration: 'underline' } 
+                }}
+                onClick={() => navigate('/signup')}
+              >
+                Don't have an account? Sign Up
               </Typography>
             </Grid>
           </Grid>

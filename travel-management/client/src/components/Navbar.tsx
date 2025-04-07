@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   AppBar,
@@ -14,6 +14,8 @@ import {
   MenuItem,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
+import { supabase } from '../lib/supabase';
+import { User } from '@supabase/supabase-js';
 
 const pages = [
   { name: 'Dashboard', path: '/' },
@@ -29,6 +31,36 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    // Get current user
+    const getCurrentUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+    };
+
+    getCurrentUser();
+
+    // Set up auth state listener
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          setUser(session.user);
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          navigate('/login');
+        }
+      }
+    );
+
+    return () => {
+      // Clean up subscription when component unmounts
+      if (authListener && authListener.subscription) {
+        authListener.subscription.unsubscribe();
+      }
+    };
+  }, [navigate]);
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElNav(event.currentTarget);
@@ -50,12 +82,16 @@ const Navbar = () => {
     navigate(path);
   };
 
-  const handleSettingClick = (setting: string) => {
+  const handleSettingClick = async (setting: string) => {
     handleCloseUserMenu();
     if (setting === 'Logout') {
-      // Handle logout logic
-      localStorage.removeItem('token');
-      navigate('/login');
+      // Use Supabase Auth for logout
+      await supabase.auth.signOut();
+      // No need to navigate - the auth listener will handle this
+    } else if (setting === 'Profile') {
+      navigate('/profile');
+    } else if (setting === 'Account') {
+      navigate('/account');
     }
   };
 
@@ -149,33 +185,39 @@ const Navbar = () => {
           </Box>
 
           <Box sx={{ flexGrow: 0 }}>
-            <Tooltip title="Open settings">
-              <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                <Avatar alt="User" src="/static/images/avatar/2.jpg" />
-              </IconButton>
-            </Tooltip>
-            <Menu
-              sx={{ mt: '45px' }}
-              id="menu-appbar"
-              anchorEl={anchorElUser}
-              anchorOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-              }}
-              keepMounted
-              transformOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-              }}
-              open={Boolean(anchorElUser)}
-              onClose={handleCloseUserMenu}
-            >
-              {settings.map((setting) => (
-                <MenuItem key={setting} onClick={() => handleSettingClick(setting)}>
-                  <Typography textAlign="center">{setting}</Typography>
-                </MenuItem>
-              ))}
-            </Menu>
+            {user ? (
+              <>
+                <Tooltip title="Open settings">
+                  <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+                    <Avatar alt={user.email || 'User'} src="/static/images/avatar/2.jpg" />
+                  </IconButton>
+                </Tooltip>
+                <Menu
+                  sx={{ mt: '45px' }}
+                  id="menu-appbar"
+                  anchorEl={anchorElUser}
+                  anchorOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  keepMounted
+                  transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  open={Boolean(anchorElUser)}
+                  onClose={handleCloseUserMenu}
+                >
+                  {settings.map((setting) => (
+                    <MenuItem key={setting} onClick={() => handleSettingClick(setting)}>
+                      <Typography textAlign="center">{setting}</Typography>
+                    </MenuItem>
+                  ))}
+                </Menu>
+              </>
+            ) : (
+              <Button color="inherit" onClick={() => navigate('/login')}>Login</Button>
+            )}
           </Box>
         </Toolbar>
       </Container>
